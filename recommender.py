@@ -1,5 +1,7 @@
 import pandas as pd
 import ast
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 # Step 1: Load both datasets
 movies = pd.read_csv("tmdb_5000_movies.csv")
 credits = pd.read_csv("tmdb_5000_credits.csv")
@@ -71,7 +73,53 @@ print(movies.columns.tolist())
 movies = movies[["id", "titlemovies", "tags"]]
 movies = movies.rename(columns={"titlemovies": "title"})
 
-# # Step 11: Check the result
-print(movies.head())
-print(movies[["title", "tags"]].iloc[0])
-print("Total movies:", len(movies))
+# # # Step 11: Check the result
+# print(movies.head())
+# print(movies[["title", "tags"]].iloc[0])
+# print("Total movies:", len(movies))
+
+# Step 12: Convert tags into numerical vectors
+cv = CountVectorizer(max_features=5000, stop_words="english")
+
+vectors = cv.fit_transform(movies["tags"])
+
+print("Vector shape:", vectors.shape)
+
+
+
+# Step 13: Calculate similarity between movies
+similarity = cosine_similarity(vectors)
+
+print("Similarity matrix shape:", similarity.shape)
+
+
+#step 14:recommend similar movies
+def recommend(movie_title):
+    matches = movies[
+        movies["title"].str.lower() == movie_title.lower()
+    ]
+    if matches.empty:
+        print("Movie not found!")
+        return
+    movie_index= matches.index[0]
+    distance = similarity[movie_index]
+    movie_list = sorted(
+        enumerate(distance), #enumerate() attaches each score to its movie index:
+        key = lambda item :item[1], #his tells Python to sort the pairs using their similarity scores, not their indexes.
+
+        reverse=True
+    )
+    print(f"\nMovies similar to {movie_title}:")
+
+    count = 0
+    for index, score in movie_list:
+        if index == movie_index:
+            continue
+
+        print(movies.iloc[index]["title"])
+        count += 1
+
+        if count == 5:
+            break
+
+recommend("Avatar")
